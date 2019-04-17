@@ -1,0 +1,9 @@
+{
+  "ANSIBLE_MODULE_ARGS": {
+    "bridge_id": "openflow:68774639421770",
+    "cmd": "set_port_port_fwd",
+    "flow_id": 1,
+    "in_port": 1,
+    "out_port": 2
+  }
+}

@@ -1,0 +1,42 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+#    - name: "Remove VXLAN"
+#      command: ovs-vsctl del-port tun0
+#      become: true
+#      ignore_errors: yes
+
+- name: "Remove VXLAN"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}/termination-point=tun{{ current_host_cfg.tun_vxlan_id }}"
+    method: DELETE
+    status_code: 200, 201, 204
+  ignore_errors: yes
+
+# Do not disconnect, delete directly
+#    - name: "Disconnect the OVS bridge from SDN controller - OpenFlow"
+#      uri:
+#        url: {{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}
+#        method: DELETE
+#        status_code: 200, 201, 204
+#      ignore_errors: yes
+#      when: current_host_cfg.of_ctrl is defined
+
+- name: "Delete bridge from OVS"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}"
+    method: DELETE
+    status_code: 200, 201, 204
+  ignore_errors: yes
+
+- name: "Disconnect SDN controller as OVSDB manager of the OVS"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}"
+    method: DELETE
+    status_code: 200, 201, 204
+  ignore_errors: yes

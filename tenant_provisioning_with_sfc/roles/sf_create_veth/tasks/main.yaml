@@ -1,0 +1,29 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# Creates veth for SF and uses it to connect SF's NS into OVS
+
+- name: "Crate veth interface for SF"
+  command: ip link add name "{{ veth_int_name }}" type veth peer name "{{ sf_id }}"-"{{ veth_int_name }}"
+  become: true
+
+- name: "Connect veth interface to the namespace"
+  command: ip link set dev "{{ veth_int_name }}" netns "{{ sf_id }}"
+  become: true
+
+- name: "Bring the veth UP"
+  command: ip netns exec "{{ sf_id }}" ip link set "{{ veth_int_name }}" up
+  become: true
+
+- name: "Add the veth into the bridge in OVS"
+  command: ovs-vsctl add-port "{{ current_host_cfg.bridge_name }}" "{{ sf_id }}"-"{{ veth_int_name }}" -- set Interface "{{ sf_id }}"-"{{ veth_int_name }}" ofport="{{ port_id }}"
+  become: true
+
+- name: "Set port up"
+  command: ip link set "{{ sf_id }}"-"{{ veth_int_name }}" up
+  become: true

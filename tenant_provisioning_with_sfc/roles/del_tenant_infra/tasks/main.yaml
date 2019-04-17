@@ -1,0 +1,31 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# This is here just to make sure, that the bridge has really been deleted even in case of any
+# issue with the previous task deleting configuration of OVS
+- name: "Remove bridge from OVS using CLI"
+  command: ovs-vsctl del-br "{{ current_host_cfg.bridge_name }}"
+  become: true
+  ignore_errors: yes
+
+- name: "Delete OVSDB manager settings from OVS"
+  command: ovs-vsctl del-manager
+  become: true
+  ignore_errors: yes
+
+- name: "Delete veths and namespace"
+  command: sudo ip link delete "{{ current_host_cfg.server_name }}"-"{{ current_host_cfg.server_veth }}"
+  become: true
+  ignore_errors: yes
+
+- name: "Delete network namespace"
+  command: sudo ip netns del "{{ current_host_cfg.server_name }}"
+  args:
+    removes: "/var/run/netns/{{ current_host_cfg.server_name }}"
+  become: true
+  ignore_errors: yes

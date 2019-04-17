@@ -1,0 +1,24 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Create network namespace"
+  command: ip netns add {{ current_host_cfg.sf_cfg.sf_id }}
+  args:
+    creates: "/var/run/netns/{{ current_host_cfg.sf_cfg.sf_id }}"
+  become: true
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Create connections from SF to OVS"
+  include_role:
+    name: sf_create_veth
+  vars:
+    sf_id: "{{ current_host_cfg.sf_cfg.sf_id }}"
+    veth_int_name: "{{ item.name }}"
+    port_id: "{{ item.port_id }}"
+  with_items: "{{ con_defs }}"
+  when: current_host_cfg.sf_cfg is defined

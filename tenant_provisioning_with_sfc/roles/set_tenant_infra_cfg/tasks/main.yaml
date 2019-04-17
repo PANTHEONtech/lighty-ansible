@@ -1,0 +1,112 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Connect SDN controller as OVSDB manager of the OVS"
+#  retries: 3
+#  delay: 3
+#  register: result
+#  until: ofp_ctx.failed == False
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}"
+    method: PUT
+#        user: admin
+#        password: admin
+#        force_basic_auth: yes
+    body_format: json
+    body: >
+      {
+        "network-topology:node": [
+          {
+            "node-id": "ovsdb://HOST{{ current_host_cfg.topology_id }}",
+            "connection-info": {
+              "ovsdb:remote-port": "6640",
+              "ovsdb:remote-ip": "{{ current_host_cfg.tun_local_ip }}"
+            }
+          }
+        ]
+      }
+    status_code: 200, 201, 204
+
+#    - name: "Create bridge in OVS"
+#      command: ovs-vsctl add-br "{{ current_host_cfg.bridge_name }}"
+#      become: true
+
+- name: "Create bridge in OVS"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}"
+    method: PUT
+    body_format: json
+    body: >
+      {
+        "network-topology:node": [
+          {
+            "node-id": "ovsdb://HOST{{ current_host_cfg.topology_id }}/bridge/{{ current_host_cfg.bridge_name }}",
+            "ovsdb:bridge-name": "{{ current_host_cfg.bridge_name }}",
+            "ovsdb:protocol-entry": [
+              {
+                "protocol": "ovsdb:ovsdb-bridge-protocol-openflow-13"
+              }
+            ],
+            "ovsdb:managed-by": "/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='ovsdb://HOST{{ current_host_cfg.topology_id }}']"
+          }
+        ]
+      }
+    status_code: 200, 201, 204
+
+#    - name: "Add the veth into the bridge in OVS"
+#      command: ovs-vsctl add-port "{{ current_host_cfg.bridge_name }}" sw1-p1
+#      become: true
+
+- name: "Add the veth into the bridge in OVS"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}/termination-point={{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}"
+    method: PUT
+    body_format: json
+    body: >
+      {
+        "network-topology:termination-point": [
+          {
+            "tp-id": "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}",
+            "ovsdb:name": "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}",
+            "ovsdb:ofport": {{ current_host_cfg.server_of_port_id }}
+          }
+        ]
+      }
+    status_code: 200, 201, 204
+
+#    - name: "Configure VXLAN"
+#      command: ovs-vsctl add-port "{{ current_host_cfg.bridge_name }}" tun0 -- set interface tun0 type=vxlan options:remote_ip="{{ current_host_cfg.tun_remote_ip }}" options:key="{{ current_host_cfg.tun_vxlan_id }}"
+#      become: true
+
+- name: "Configure VXLAN"
+  uri:
+    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}/termination-point=tun{{ current_host_cfg.tun_vxlan_id }}"
+    method: PUT
+    body_format: json
+    body: >
+      {
+        "network-topology:termination-point": [
+          {
+            "tp-id": "tun{{ current_host_cfg.tun_vxlan_id }}",
+            "ovsdb:name": "tun{{ current_host_cfg.tun_vxlan_id }}",
+            "ovsdb:ofport": {{ current_host_cfg.tun_of_port_id }},
+            "ovsdb:interface-type": "ovsdb:interface-type-vxlan",
+            "ovsdb:options": [
+                  {
+                      "option": "remote_ip",
+                      "value": "{{ current_host_cfg.tun_remote_ip }}"
+                  },
+                  {
+                      "option": "key",
+                      "value": "{{ current_host_cfg.tun_vxlan_id }}"
+                  }
+              ]
+          }
+        ]
+      }
+    status_code: 200, 201, 204

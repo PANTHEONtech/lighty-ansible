@@ -1,0 +1,17 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# When the sf_cfg item of the current host's configuration is not defined then
+# use the SDN controller and configure simple flows forwarding packets between
+# veth link and the VXLAN tunnel interface.
+- hosts: all
+  connection: local
+  roles:
+    - read_current_host_cfg
+    - role: set_tenant_flows
+      when: current_host_cfg.sf_cfg is not defined

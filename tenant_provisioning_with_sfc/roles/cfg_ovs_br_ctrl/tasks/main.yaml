@@ -1,0 +1,36 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Setup the bridge in OVS to connect to SDN controller over OpenFlow"
+  command: ovs-vsctl set-controller "{{ current_host_cfg.bridge_name }}" "{{ current_host_cfg.of_ctrl }}"
+  become: true
+
+# I should be possible to configure the controller using OVSDB, but it seems that there's some
+# instablility in the ODL OVSDB SB plugin....
+
+#- name: "Setup the bridge in OVS to connect to SDN controller over OpenFlow"
+#  uri:
+#    url: "{{ sdn_controller_url }}/restconf/data/network-topology:network-topology/topology=ovsdb%3A1/node=ovsdb%3A%2F%2FHOST{{ current_host_cfg.topology_id }}%2Fbridge%2F{{ current_host_cfg.bridge_name }}"
+#    method: PUT
+#    body_format: json
+#    body: >
+#      {
+#        "network-topology:node": [
+#              {
+#                "node-id": "ovsdb://HOST{{ current_host_cfg.topology_id }}/bridge/{{ current_host_cfg.bridge_name }}",
+#                   "ovsdb:bridge-name": "{{ current_host_cfg.bridge_name }}",
+#                    "ovsdb:controller-entry": [
+#                      {
+#                        "target": "{{ current_host_cfg.of_ctrl }}"
+#                      }
+#                    ]
+#              }
+#          ]
+#      }
+#    status_code: 200, 201, 204
+#  when: current_host_cfg.of_ctrl is defined

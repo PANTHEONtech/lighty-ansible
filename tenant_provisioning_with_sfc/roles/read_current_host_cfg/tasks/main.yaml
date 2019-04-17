@@ -1,0 +1,38 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Read list of configurations and store the configuration for the current host (by hostname)"
+  set_fact:
+    current_host_cfg: "{{ item }}"
+  loop: "{{ cfg_list }}"
+  when:
+    - current_host_cfg is not defined
+    - cfg_id is not defined
+    - item.id == ansible_host
+
+- name: "Read list of configurations and store the configuration for the current host (by cfg ID)"
+  set_fact:
+    current_host_cfg: "{{ item }}"
+  loop: "{{ cfg_list }}"
+  when:
+    - current_host_cfg is not defined
+    - cfg_id is defined
+    - item.id == cfg_id
+
+- name: "Read list of configurations and store the configuration for the current host (by tun_local_ip)"
+  set_fact:
+    current_host_cfg: "{{ item }}"
+  loop: "{{ cfg_list }}"
+  when:
+    - current_host_cfg is not defined
+    - cfg_id is not defined
+    - item.tun_local_ip == ansible_host
+
+- fail:
+    msg: "Configuration not found or not defined. You can use cfg_id or current_hos_cfg variables."
+  when: current_host_cfg is not defined

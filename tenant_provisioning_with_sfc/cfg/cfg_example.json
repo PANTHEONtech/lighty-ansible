@@ -1,0 +1,49 @@
+{
+  "ansible_sudo_pass": "admin",
+  "cfg_list": [
+    {
+      "id": "swdev-dc-1",
+      "bridge_name": "t1-br1",
+      "topology_id": 1,
+      "of_ctrl": "tcp:192.168.10.5:6633",
+
+      "server_name": "t1-s1",
+      "server_ip": "10.10.1.1",
+      "server_veth": "veth1",
+      "server_of_port_id": 100,
+
+      "tun_vxlan_id": 123,
+      "tun_local_ip": "192.168.10.10",
+      "tun_remote_ip": "192.168.10.20",
+      "tun_of_port_id": 200,
+
+      "sf_cfg": {
+        "sf_id": "v-fw",
+        "con_left": {
+          "name": "veth2",
+          "port_id": 10
+        },
+        "con_right": {
+          "name": "veth3",
+          "port_id": 20
+        }
+      }
+    },
+    {
+      "id": "swdev-dc-2",
+      "bridge_name": "t1-br2",
+      "topology_id": 2,
+      "of_ctrl": "tcp:192.168.10.5:6633",
+
+      "server_name": "t1-s2",
+      "server_ip": "10.10.1.2",
+      "server_veth": "veth1",
+      "server_of_port_id": 100,
+
+      "tun_vxlan_id": 123,
+      "tun_local_ip": "192.168.10.20",
+      "tun_remote_ip": "192.168.10.10",
+      "tun_of_port_id": 200
+    }
+  ]
+}

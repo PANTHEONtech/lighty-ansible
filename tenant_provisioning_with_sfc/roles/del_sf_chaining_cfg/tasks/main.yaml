@@ -1,0 +1,26 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+- name: "Get the OpenFlow bridge ID"
+  include_role:
+    name: resolve_of_bridge_id
+# Doesn't work with include_role
+#  ignore_errors: yes
+
+- name: "Delete the flows"
+  of_switch:
+    bridge_id: "{{ ofp_ctx.br_id }}"
+    controller_url: "{{ sdn_controller_url }}"
+    cmd: "del_flow"
+    flow_id: "{{ item }}"
+  ignore_errors: yes
+  with_items:
+    - 1
+    - 2
+    - 3
+    - 4
+  when: current_host_cfg.sf_cfg is defined

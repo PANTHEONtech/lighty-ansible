@@ -1,0 +1,29 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Delete the veth from the bridge in OVS"
+  command: ovs-vsctl del-port "{{ current_host_cfg.bridge_name }}" "{{ item }}"
+  become: true
+  ignore_errors: yes
+  with_items: "{{ br_int_list }}"
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Delete the veth interface"
+  command: sudo ip link delete "{{ item }}"
+  become: true
+  ignore_errors: yes
+  with_items: "{{ br_int_list }}"
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Delete network namespace of vFirewall"
+  command: sudo ip netns del {{ current_host_cfg.sf_cfg.sf_id }}
+  args:
+    removes: "/var/run/netns/{{ current_host_cfg.sf_cfg.sf_id }}"
+  become: true
+  ignore_errors: yes
+  when: current_host_cfg.sf_cfg is defined

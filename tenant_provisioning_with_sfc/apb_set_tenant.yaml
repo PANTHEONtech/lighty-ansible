@@ -1,0 +1,38 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# Read the configuration of the current host and create tenant's namespace and veth.
+# Connect one end of the veth to the namespace and configure IP address and set the
+# interface UP.
+# Configure also OVS to use SDN controller as OVSDB manager.
+- hosts: all
+  serial: 1
+  roles:
+    - read_current_host_cfg
+    - set_tenant_infra
+
+# Send request to the SDN controller which connects the SDN controller to the OVS.
+# Use SDN controller to create tenant's bridge in the OVS and connect
+# the veth also into the bridge.
+# Create also tunnel interface using VXLAN encapsulation and connect
+# it to the bridge. (Linux kernel of the host OS will take care of
+# forwarding packets to/from the tunnel)
+- hosts: all
+  connection: local
+  serial: 1
+  roles:
+    - set_tenant_infra_cfg
+
+# Setup OpenFlow connection from the bridge in OVS to the SDN controller.
+# It must be done here because when the bridge connects to OpenFlow controller it deletes
+# all interfaces and flows configured previously
+- hosts: all
+  serial: 1
+  roles:
+    - role: cfg_ovs_br_ctrl
+      when: current_host_cfg.of_ctrl is defined

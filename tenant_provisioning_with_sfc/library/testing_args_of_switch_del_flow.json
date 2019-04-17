@@ -1,0 +1,7 @@
+{
+  "ANSIBLE_MODULE_ARGS": {
+    "bridge_id": "openflow:68774639421770",
+    "cmd": "del_flow",
+    "flow_id": 1
+  }
+}

@@ -1,0 +1,51 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Get the OpenFlow bridge ID"
+  include_role:
+    name: resolve_of_bridge_id
+
+- name: "Create flow from SF(right) to tun"
+  of_switch:
+    controller_url: "{{ sdn_controller_url }}"
+    bridge_id: "{{ ofp_ctx.br_id }}"
+    cmd: "set_port_port_fwd"
+    flow_id: 1
+    in_port: "{{ current_host_cfg.sf_cfg.con_right.port_id }}"
+    out_port: "{{ current_host_cfg.tun_of_port_id }}"
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Create flow from tun to SF(right)"
+  of_switch:
+    controller_url: "{{ sdn_controller_url }}"
+    bridge_id: "{{ ofp_ctx.br_id }}"
+    cmd: "set_port_port_fwd"
+    flow_id: 2
+    in_port: "{{ current_host_cfg.tun_of_port_id }}"
+    out_port: "{{ current_host_cfg.sf_cfg.con_right.port_id }}"
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Create flow from veth1 to SF(left)"
+  of_switch:
+    controller_url: "{{ sdn_controller_url }}"
+    bridge_id: "{{ ofp_ctx.br_id }}"
+    cmd: "set_port_port_fwd"
+    flow_id: 3
+    in_port: "{{ current_host_cfg.server_of_port_id }}"
+    out_port: "{{ current_host_cfg.sf_cfg.con_left.port_id }}"
+  when: current_host_cfg.sf_cfg is defined
+
+- name: "Create flow from SF(left) to veth1"
+  of_switch:
+    controller_url: "{{ sdn_controller_url }}"
+    bridge_id: "{{ ofp_ctx.br_id }}"
+    cmd: "set_port_port_fwd"
+    flow_id: 4
+    in_port: "{{ current_host_cfg.sf_cfg.con_left.port_id }}"
+    out_port: "{{ current_host_cfg.server_of_port_id }}"
+  when: current_host_cfg.sf_cfg is defined

@@ -1,0 +1,30 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# Find the configuration for the current host and configure SFC infrastructure
+# if the configuration contains item: sf_cfg
+# The SFC infrastructure consists of two veth links and one namespace for the SF.
+# Connect both links to the SF namespace by one side and to the tenant's bridge by
+# the other side. Set links to UP state.
+- hosts: all
+  roles:
+    - read_current_host_cfg
+    - role: set_sf_chaining_infra
+      vars:
+        con_defs:
+          - "{{ current_host_cfg.sf_cfg.con_left }}"
+          - "{{ current_host_cfg.sf_cfg.con_right }}"
+      when: current_host_cfg.sf_cfg is defined
+
+# Use the SDN controller to configure OpenFlow flows which set up the forwarding
+# of packets between ports in the tenant's bridge (veth links and the VXLAN tunnel).
+- hosts: all
+  connection: local
+  roles:
+    - role: set_sf_chaining_cfg
+      when: current_host_cfg.sf_cfg is defined
