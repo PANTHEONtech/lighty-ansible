@@ -13,4 +13,4 @@ with orchestration of networking devices (physical or virtual).<br/>
 ## Brief description of example projects
 
 - **tenant_provisioning_with_sfc** - Implements Ansible playbooks and module for provisioning and de-provisioning
-tenant's containers, VXLAN tunnel, SF (Service Function) and SFC. Check out blog at <TODO: add link> for more details.
+tenant's containers, VXLAN tunnel, SF (Service Function) and SFC. Check out blog at https://pantheon.tech/awx-ansible-lightyio/ for more details.
