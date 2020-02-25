@@ -5,6 +5,14 @@
 #  terms of the Eclipse Public License v1.0 which accompanies this distribution,
 #  and is available at https://www.eclipse.org/legal/epl-v10.html
 
+- name: "Load list of configurations from supplied path"
+  include_vars:
+    file: "{{ cfg_list_source }}"
+  when: cfg_list is not defined and cfg_list_source is defined
+
+- fail:
+    msg: "Configuration list not found or not defined. You can use cfg_list or cfg_list_source variables."
+  when: current_host_cfg is not defined and cfg_list is not defined
 
 - name: "Read list of configurations and store the configuration for the current host (by hostname)"
   set_fact:
@@ -34,5 +42,5 @@
     - item.tun_local_ip == ansible_host
 
 - fail:
-    msg: "Configuration not found or not defined. You can use cfg_id or current_hos_cfg variables."
+    msg: "Configuration not found or not defined. You can use cfg_id or current_host_cfg variables."
   when: current_host_cfg is not defined
