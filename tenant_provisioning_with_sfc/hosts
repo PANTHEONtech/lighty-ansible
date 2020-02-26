@@ -1,2 +1,3 @@
-swdev-dc-1
-swdev-dc-2
+ovs:
+  swdev-dc-1
+  swdev-dc-2

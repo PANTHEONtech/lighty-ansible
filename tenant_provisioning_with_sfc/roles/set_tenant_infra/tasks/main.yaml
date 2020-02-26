@@ -13,8 +13,8 @@
     creates: "/var/run/netns/{{ current_host_cfg.server_name }}"
   become: true
 
-- name: "Crate veth interface"
-  command: ip link add name "{{ current_host_cfg.server_veth }}" type veth peer name "{{ current_host_cfg.server_name }}"-"{{ current_host_cfg.server_veth }}"
+- name: "Create veth interface"
+  command: ip link add name "{{ current_host_cfg.server_veth }}" type veth peer name "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}"
   become: true
 
 - name: "Connect veth interface to the namespace"
@@ -22,13 +22,17 @@
   become: true
 
 - name: "Set internal IP address to the veth in the namespace"
-  command: ip netns exec "{{ current_host_cfg.server_name }}" ifconfig "{{ current_host_cfg.server_veth }}" "{{ current_host_cfg.server_ip }}"/24 up
+  command: ip -netns "{{ current_host_cfg.server_name }}" address add "{{ current_host_cfg.server_ip }}/24" dev "{{ current_host_cfg.server_veth }}"
   become: true
 
 - name: "Set OVS to listen to OVSDB connections of SDN controller"
-  command: ovs-vsctl set-manager ptcp:6640:"{{ current_host_cfg.tun_local_ip }}"
+  command: ovs-vsctl set-manager "ptcp:6640:{{ current_host_cfg.tun_local_ip }}"
+  become: true
+
+- name: "Set internal port up"
+  command: ip -netns "{{ current_host_cfg.server_name }}" link set "{{ current_host_cfg.server_veth }}" up
   become: true
 
 - name: "Set port up"
-  command: ip link set "{{ current_host_cfg.server_name }}"-"{{ current_host_cfg.server_veth }}" up
+  command: ip link set "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}" up
   become: true

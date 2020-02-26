@@ -8,7 +8,7 @@
 
 # Create linux bridge in the SF namespace and connect veth links to the
 # linux bridge and set the bridge UP.
-- hosts: all
+- hosts: ovs
   roles:
     - read_current_host_cfg
     - role: create_bridge_in_ns

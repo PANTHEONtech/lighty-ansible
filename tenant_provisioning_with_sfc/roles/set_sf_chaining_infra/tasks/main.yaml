@@ -7,7 +7,7 @@
 
 
 - name: "Create network namespace"
-  command: ip netns add {{ current_host_cfg.sf_cfg.sf_id }}
+  command: ip netns add "{{ current_host_cfg.sf_cfg.sf_id }}"
   args:
     creates: "/var/run/netns/{{ current_host_cfg.sf_cfg.sf_id }}"
   become: true

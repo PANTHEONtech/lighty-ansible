@@ -7,14 +7,14 @@
 
 
 - name: "Create bridge in container"
-  command: ip netns exec "{{ net_ns_name }}" ip link add name br0 type bridge
+  command: ip -netns "{{ net_ns_name }}" link add name br0 type bridge
   become: true
 
 - name: "Set the bridge UP"
-  command: ip netns exec "{{ net_ns_name }}" ip link set dev br0 up
+  command: ip -netns "{{ net_ns_name }}" link set dev br0 up
   become: true
 
 - name: "Add interfaces into the bridge"
-  command: ip netns exec "{{ net_ns_name }}" ip link set dev "{{ item }}" master br0
+  command: ip -netns "{{ net_ns_name }}" link set dev "{{ item }}" master br0
   become: true
-  with_items: "{{ int_list }}"
+  loop: "{{ int_list }}"

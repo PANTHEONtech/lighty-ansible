@@ -11,7 +11,7 @@
 # The SFC infrastructure consists of two veth links and one namespace for the SF.
 # Connect both links to the SF namespace by one side and to the tenant's bridge by
 # the other side. Set links to UP state.
-- hosts: all
+- hosts: ovs
   roles:
     - read_current_host_cfg
     - role: set_sf_chaining_infra
@@ -23,7 +23,7 @@
 
 # Use the SDN controller to configure OpenFlow flows which set up the forwarding
 # of packets between ports in the tenant's bridge (veth links and the VXLAN tunnel).
-- hosts: all
+- hosts: ovs
   connection: local
   roles:
     - role: set_sf_chaining_cfg
