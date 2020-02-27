@@ -15,15 +15,20 @@
 
 - name: "Create veth interface"
   command: ip link add name "{{ current_host_cfg.server_veth }}" type veth peer name "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}"
+  args:
+    creates: "/sys/class/net/{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}"
   become: true
+  register: create_veth_interface
 
 - name: "Connect veth interface to the namespace"
   command: ip link set dev "{{ current_host_cfg.server_veth }}" netns "{{ current_host_cfg.server_name }}"
   become: true
+  when: create_veth_interface.changed
 
 - name: "Set internal IP address to the veth in the namespace"
   command: ip -netns "{{ current_host_cfg.server_name }}" address add "{{ current_host_cfg.server_ip }}/24" dev "{{ current_host_cfg.server_veth }}"
   become: true
+  when: create_veth_interface.changed
 
 - name: "Set OVS to listen to OVSDB connections of SDN controller"
   command: ovs-vsctl set-manager "ptcp:6640:{{ current_host_cfg.tun_local_ip }}"
