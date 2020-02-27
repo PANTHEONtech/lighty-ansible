@@ -1,0 +1,14 @@
+# Use to destroy AWX docker topology
+awx_destroy: false
+
+# AWX repository
+awx_repo: https://github.com/ansible/awx.git
+awx_branch: devel
+
+# AWX credentials
+awx_username: admin
+awx_password: password
+
+# AWX root URL reachable from outside
+awx_pub_port: 8052
+awx_ssl_port: 8443

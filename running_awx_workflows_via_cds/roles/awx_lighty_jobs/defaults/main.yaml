@@ -1,0 +1,36 @@
+# AWX project / job source repository
+lighty_ansible_repo: https://github.com/PantheonTechnologies/lighty-ansible.git
+lighty_ansible_branch: master
+
+# AWX job/workflow identifiers
+awx_org: "Pantheon"
+awx_project: "Lighty CDS demo"
+awx_inventory: "cds-awx-inventory"
+awx_ovs_group: "ovs"
+
+# AWX credentials
+awx_username: admin
+awx_password: password
+
+# Verbosity for AWX job templates
+awx_verbosity: 1
+
+# AWX root URL reachable from outside
+awx_host: "http://localhost:8052"
+awx_verify_ssl: false
+
+# Container and host name for lighty.io openflow plugin
+lighty_roo_name: lighty-roo
+
+# Container and host name for OVS target machine A
+# this must match the configuration within lighty-ansible playbook repo
+ovs_a_name: swdev-dc-1
+
+# Container and host name for OVS target machine A
+# this must match the configuration within lighty-ansible playbook repo
+ovs_b_name: swdev-dc-2
+
+# User for SSH into OVS target machines
+ovs_username: root
+ovs_password: ""
+

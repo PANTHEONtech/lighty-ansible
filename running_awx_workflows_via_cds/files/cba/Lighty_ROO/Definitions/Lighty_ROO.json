@@ -1,0 +1,200 @@
+{
+  "tosca_definitions_version" : "controller_blueprint_1_0_0",
+  "metadata" : {
+    "template_author" : "Pantheon.tech",
+    "author-email" : "sales@pantheon.tech",
+    "user-groups" : "ADMIN, OPERATION",
+    "template_name" : "Lighty_ROO",
+    "template_version" : "0.9.0",
+    "template_tags" : "Lighty.io, Lighty, OpenFlow, OVSDB, Restconf"
+  },
+  "topology_template" : {
+    "workflows" : {
+      "tenant-flows" : {
+        "steps" : {
+          "tenant-flows-awx" : {
+            "description" : "Setup tenant infrastructure",
+            "target" : "tenant-flows-awx"
+          }
+        },
+        "inputs" : {
+          "awx-endpoint": {
+            "required": true,
+            "type": "json"
+          },
+          "awx-inventory": {
+            "required": false,
+            "type": "string",
+            "default": "cds-dest-inventory"
+          },
+          "awx-extra-vars": {
+            "required": false,
+            "type": "json",
+            "default": ""
+          }
+        },
+        "outputs" : {
+          "logs": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["tenant-flows-awx", "ansible-command-logs"]
+            }
+          },
+          "status": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["tenant-flows-awx", "ansible-command-status"]
+            }
+          },
+          "answer": {
+            "type": "json",
+            "value": {
+              "get_attribute": ["tenant-flows-awx", "ansible-artifacts"]
+            }
+          }
+        }
+      },
+      "sf-bridge" : {
+        "steps" : {
+          "sf-bridge-awx" : {
+            "description" : "Setup service function bridge",
+            "target" : "sf-bridge-awx"
+          }
+        },
+        "inputs" : {
+          "awx-endpoint": {
+            "required": true,
+            "type": "json"
+          },
+          "awx-inventory": {
+            "required": false,
+            "type": "string",
+            "default": "cds-dest-inventory"
+          },
+          "awx-extra-vars": {
+            "required": false,
+            "type": "json",
+            "default": ""
+          }
+        },
+        "outputs" : {
+          "logs": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["sf-bridge-awx", "ansible-command-logs"]
+            }
+          },
+          "status": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["sf-bridge-awx", "ansible-command-status"]
+            }
+          },
+          "answer": {
+            "type": "json",
+            "value": {
+              "get_attribute": ["sf-bridge-awx", "ansible-artifacts"]
+            }
+          }
+        }
+      },
+      "deprovision" : {
+        "steps" : {
+          "deprovision-awx" : {
+            "description" : "Deprovision to initial state",
+            "target" : "deprovision-awx"
+          }
+        },
+        "inputs" : {
+          "awx-endpoint": {
+            "required": true,
+            "type": "json"
+          },
+          "awx-inventory": {
+            "required": false,
+            "type": "string",
+            "default": "cds-dest-inventory"
+          },
+          "awx-extra-vars": {
+            "required": false,
+            "type": "json",
+            "default": ""
+          }
+        },
+        "outputs" : {
+          "logs": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["deprovision-awx", "ansible-command-logs"]
+            }
+          },
+          "status": {
+            "type": "string",
+            "value": {
+              "get_attribute": ["deprovision-awx", "ansible-command-status"]
+            }
+          },
+          "answer": {
+            "type": "json",
+            "value": {
+              "get_attribute": ["deprovision-awx", "ansible-artifacts"]
+            }
+          }
+        }
+      }
+    },
+    "node_templates" : {
+      "tenant-flows-awx" : {
+        "type" : "component-remote-ansible-executor",
+        "interfaces" : {
+          "ComponentRemoteAnsibleExecutor" : {
+            "operations" : {
+              "process" : {
+                "inputs" : {
+                  "endpoint-selector": {"get_input": "awx-endpoint"},
+                  "workflow-job-template-id": "tenant-flows++",
+                  "inventory": {"get_input": "awx-inventory"},
+                  "extra-vars": {"get_input": "awx-extra-vars"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "sf-bridge-awx" : {
+        "type" : "component-remote-ansible-executor",
+        "interfaces" : {
+          "ComponentRemoteAnsibleExecutor" : {
+            "operations" : {
+              "process" : {
+                "inputs" : {
+                  "endpoint-selector": {"get_input": "awx-endpoint"},
+                  "workflow-job-template-id": "sf-bridge++",
+                  "inventory": {"get_input": "awx-inventory"},
+                  "extra-vars": {"get_input": "awx-extra-vars"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "deprovision-awx" : {
+        "type" : "component-remote-ansible-executor",
+        "interfaces" : {
+          "ComponentRemoteAnsibleExecutor" : {
+            "operations" : {
+              "process" : {
+                "inputs" : {
+                  "endpoint-selector": {"get_input": "awx-endpoint"},
+                  "workflow-job-template-id": "deprovision++",
+                  "inventory": {"get_input": "awx-inventory"},
+                  "extra-vars": {"get_input": "awx-extra-vars"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

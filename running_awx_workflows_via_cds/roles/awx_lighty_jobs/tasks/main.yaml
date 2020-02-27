@@ -1,0 +1,171 @@
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+- name: "Create AWX organization"
+  tower_organization:
+    name: "{{ awx_org }}"
+    description: "Created for CDS Lighty AWX integration demo"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+
+
+- name: "Create AWX project"
+  tower_project:
+    name: "{{ awx_project }}"
+    organization: "{{ awx_org }}"
+    description: "Created for CDS Lighty AWX integration demo"
+    scm_type: git
+    scm_url: "{{ lighty_ansible_repo }}"
+    scm_branch: "{{ lighty_ansible_branch }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+
+
+- name: "Setup inventory"
+  tower_inventory:
+    name: "{{ awx_inventory }}"
+    organization: "{{ awx_org }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+  register: awx_inventory_result
+
+
+- name: "Setup inventory hosts"
+  tower_host:
+    name: "{{ item }}"
+    inventory: "{{ awx_inventory }}"
+    variables:
+      ansible_user: "{{ ovs_username }}"
+      ansible_password: "{{ ovs_password }}"
+      ansible_python_interpreter: "/usr/bin/python2"
+      ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+  register: awx_host_results
+  loop:
+    - "{{ lighty_roo_name }}"
+    - "{{ ovs_a_name }}"
+    - "{{ ovs_b_name }}"
+
+
+- name: "Setup inventory group {{ awx_ovs_group }}"
+  tower_group:
+    name: "{{ awx_ovs_group }}"
+    inventory: "{{ awx_inventory }}"
+    # has no effect
+    #instance_filters: "{{ ovs_a_name }}, {{ ovs_b_name }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+  register: awx_group_result
+
+
+- name: "Associate hosts with inventory group {{ awx_ovs_group }}"
+#  shell: >-
+#    tower-cli host associate --host "{{ item.id }}" --group "{{ awx_group_result.id }}"
+#    -h "{{ awx_host }}" -u "{{ awx_username }}" -p "{{ awx_password }}"
+#    {% if not awx_verify_ssl %}--insecure{% endif %}
+  uri:
+    url: "{{ awx_host }}/api/v2/groups/{{ awx_group_result.id }}/hosts/"
+    method: POST
+    user: "{{ awx_username }}"
+    password: "{{ awx_password }}"
+    force_basic_auth: yes
+    body_format: json
+    body: >
+      {
+        "id": {{ item.id }}
+      }
+    status_code: 200, 201, 204
+  loop: "{{ awx_host_results.results }}"
+  when: item.host != lighty_roo_name
+
+
+- name: "Job template for each playbook"
+  tower_job_template:
+    ask_extra_vars: true
+    ask_inventory: true
+    inventory: "{{ awx_inventory }}"
+    job_type: run
+    name: "job_{{ item }}"
+    project: "{{ awx_project }}"
+    playbook: "tenant_provisioning_with_sfc/apb_{{ item }}.yaml"
+    verbosity: "{{ awx_verbosity }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+  register: awx_jobs
+  loop:
+    - del_chaining
+    - del_flows
+    - del_tenant
+    - set_bridge
+    - set_chaining
+    - set_flows
+    - set_tenant
+
+
+- name: "Workflow job templates"
+  tower_workflow_template:
+    name: "{{ item }}"
+    ask_extra_vars: true
+    # NOTE: CDS cannot resolve inventory by name - encodes ? query marker
+    ask_inventory: false
+    # NOTE: AWX API rejects WF template inventory update by name as well
+    inventory: "{{ awx_inventory_result.id }}"
+    organization: "{{ awx_org }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    tower_verify_ssl: "{{ awx_verify_ssl }}"
+  register: awx_workflows
+  loop:
+    - tenant-flows
+    - sf-bridge
+    - deprovision
+
+- name: "Debug job templates"
+  debug:
+    var: awx_jobs
+
+
+- name: "Debug workflow templates"
+  debug:
+    var:  awx_workflows
+
+
+- name: "Workflow job template chains"
+  x_tower_workflow_nodes:
+    job_templates: "{{ awx_jobs.results }}"
+    workflow_templates: "{{ awx_workflows.results }}"
+    chains:
+      tenant-flows:
+        - job_set_tenant
+        - job_set_flows
+      sf-bridge:
+        - job_set_tenant
+        - job_set_chaining
+        - job_set_bridge
+      deprovision:
+        - job_del_chaining
+        - job_del_flows
+        - job_del_tenant
+    organization: "{{ awx_org }}"
+    tower_username: "{{ awx_username }}"
+    tower_password: "{{ awx_password }}"
+    tower_host: "{{ awx_host }}"
+    #tower_verify_ssl: "{{ awx_verify_ssl }}"

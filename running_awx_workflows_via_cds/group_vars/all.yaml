@@ -1,0 +1,43 @@
+# Local directory for ansible-created files
+runtime_root: runtime_data
+
+# AWX job/workflow identifiers
+awx_org: "Pantheon"
+awx_project: "Lighty CDS demo"
+awx_inventory: "cds-awx-inventory"
+
+# AWX credentials
+awx_username: admin
+awx_password: password
+
+# network on which AWX can communicate with all other nodes
+# this is determined by the AWX setup playbook and docker-compose
+shared_network: awx_default
+
+# Container and host name for lighty.io openflow plugin
+lighty_roo_name: lighty-roo
+
+# Container and host name for OVS target machine A
+# this must match the configuration within lighty-ansible playbook repo
+ovs_a_name: swdev-dc-1
+
+# Container and host name for OVS target machine A
+# this must match the configuration within lighty-ansible playbook repo
+ovs_b_name: swdev-dc-2
+
+# User for SSH into OVS target machines
+ovs_username: root
+ovs_password: ""
+
+# Load lighty-ansible's cfg_list from this file within that repository
+# It's better to have it computed by AWX with IPs assigned by docker-compose
+#lighty_cfg_list_source: cfg/cfg_cds.json
+
+# TODO: local overrides
+
+# container with ONAP CDS blueprint processor
+cds_bp_repo: onap/
+cds_bp_version: 0.7.0-PANTHEONTECH-latest
+
+lighty_ansible_repo: https://github.com/ptlm/lighty-ansible.git
+lighty_ansible_branch: cds

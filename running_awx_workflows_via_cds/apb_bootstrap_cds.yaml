@@ -1,0 +1,26 @@
+#
+#  Copyright (c) 2019 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+# Build a CBA archive and upload it into CDS
+- hosts: localhost
+  connection: local
+  module_defaults:
+    cds_controller:
+      cds_url: "{{ cds_url | default('http://localhost:8000') }}"
+      cds_auth_token: "{{ cds_auth_token | default('Y2NzZGthcHBzOmNjc2RrYXBwcw==') }}"
+  tasks:
+    - name: "Await CDS"
+      cds_controller:
+        cmd: health
+      register: cds_health
+      retries: 5
+      delay: 5
+      until: not cds_health.failed
+    - name: "Bootstrap CDS"
+      cds_controller:
+        cmd: bootstrap

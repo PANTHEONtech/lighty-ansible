@@ -1,0 +1,86 @@
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+- name: "Set CBA poor archive presence"
+  stat:
+    path: "{{ cba_poor_archive }}"
+  register: cba_poor
+
+
+- name: "Set CBA rich archive presence"
+  stat:
+    path: "{{ cba_rich_archive }}"
+  register: cba_rich
+
+
+- name: "Get remote CBA meta"
+  cds_controller:
+    cmd: named_blueprint
+    blueprint: "{{ cba_blueprint }}"
+    version: "{{ cba_version }}"
+  register: cba_remote_meta
+
+
+- name: "Set remote exists fact"
+  set_fact:
+    cba_remote_exists: "{{ not cba_remote_meta.failed and cba_remote_meta.answer }}"
+
+
+- name: "Set need upload fact"
+  set_fact:
+    cba_need_upload: "{{ not cba_remote_exists or cba_reupload }}"
+
+
+- name: "Set need enrich fact"
+  set_fact:
+    cba_need_enrich: "{{ cba_need_upload and cba_enrich and (not cba_rich.stat.exists or cba_repack) }}"
+
+
+- name: "Set need CBA archive fact"
+  set_fact:
+    cba_need_archive: "{{ (not cba_poor.stat.exists or cba_repack) and (cba_need_enrich if cba_enrich else cba_need_upload) }}"
+
+
+- name: "Remove previous poor archive"
+  file:
+    path: "{{ playbook_dir }}/{{ cba_poor_archive }}"
+    state: absent
+  when: cba_poor.stat.exists and cba_need_archive
+
+
+- name: "Archive CBA for upload"
+  archive:
+    path: "{{ cba_directory }}/*/*"
+    dest: "{{ cba_poor_archive }}"
+    exclude_path:
+      - "{{ cba_directory }}/*/.*"
+    format: zip
+  when: cba_need_archive
+
+
+- name: "Enrich CBA in CDS"
+  cds_controller:
+    cmd: enrich
+    cba_source: "{{ cba_poor_archive }}"
+    cba_target: "{{ cba_rich_archive }}"
+  when: cba_need_enrich
+
+# NOTE: The removal and reupload of the same version doesn't seem to work.
+# Most of the time, a reupload will have the same behavior as the previous
+# version (i.e. failure points), whereas a version bump updates behavior.
+- name: "Remove remote CBA version"
+  cds_controller:
+    cmd: remove
+    blueprint: "{{ cba_remote_meta.answer.blueprintModel.id }}"
+  when: cba_remote_exists and cba_need_upload
+
+
+- name: "Add CBA in CDS"
+  cds_controller:
+    cmd: upload
+    cba_source: "{{ cba_rich_archive if cba_enrich else cba_poor_archive }}"
+  when: cba_need_upload
