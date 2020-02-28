@@ -1,12 +1,12 @@
 {
   "tosca_definitions_version" : "controller_blueprint_1_0_0",
   "metadata" : {
-    "template_author" : "Pantheon.tech",
-    "author-email" : "sales@pantheon.tech",
+    "template_author" : "PANTHEON.tech",
+    "author-email" : "info@pantheon.tech",
     "user-groups" : "ADMIN, OPERATION",
     "template_name" : "Lighty_ROO",
     "template_version" : "0.9.0",
-    "template_tags" : "Lighty.io, Lighty, OpenFlow, OVSDB, Restconf"
+    "template_tags" : "Lighty.io, Lighty, OpenFlow, OVSDB, RESTCONF"
   },
   "topology_template" : {
     "workflows" : {

@@ -11,7 +11,7 @@ code and associated configuration are enabling automated setup of AWX, CDS,
 and a suitable target topology to configure.
 
 This topology comprises a separate node running the SDN controller based
-on [Lighty.io][lighty] with Restconf, OpenFlow and OVSDB plugins,
+on [Lighty.io][lighty] with RESTCONF, OpenFlow and OVSDB plugins,
 alongside two nodes running OpenVSwitch that represent a datacenter each.
 The workings of demo hosted by this infrastructure is discussed in detail
 at [Panthen.tech's][blog] site.
@@ -144,7 +144,7 @@ Configure a suitable port for `cds_jdb_port` in the `group_vars/all.yaml` file.
 To build the modified image, run:
 
     cd files/docker/cdsd
-    docker build -t onap/ccsdk-blueprintsprocessor:0.7.0-PANTHEONTECH-latest .
+    docker build -t pantheontech/ccsdk-blueprintsprocessor:0.7.0-DEMO-latest .
 
 ### OpenVSwitch
 
@@ -160,7 +160,7 @@ To build the modified image, run:
     cd files/docker/ovs
     docker build -t pantheontech/openvswitch:latest .
 
-### Lighty.io with Restconf, OpenFlow, OVSDB plugins
+### Lighty.io with RESTCONF, OpenFlow, OVSDB plugins
 
 There is no public build of this image currently available, so it must be built
 manually; the build requires OpenJDK 8 (openjdk 11 can build it too) and maven.

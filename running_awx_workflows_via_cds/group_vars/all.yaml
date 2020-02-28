@@ -33,11 +33,9 @@ ovs_password: ""
 # It's better to have it computed by AWX with IPs assigned by docker-compose
 #lighty_cfg_list_source: cfg/cfg_cds.json
 
-# TODO: local overrides
-
 # container with ONAP CDS blueprint processor
-cds_bp_repo: onap/
-cds_bp_version: 0.7.0-PANTHEONTECH-latest
+cds_bp_repo: pantheontech/
+cds_bp_version: 7.0-DEMO-latest
 
 lighty_ansible_repo: https://github.com/ptlm/lighty-ansible.git
 lighty_ansible_branch: cds
