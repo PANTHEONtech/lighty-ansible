@@ -1,0 +1,271 @@
+#!/usr/bin/python
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+#
+
+
+"""
+This module implements select requests to HTTP REST API
+of ONAP CDS blueprint processor.
+"""
+
+import collections
+import email.mime.application
+import email.generator
+import email.mime.multipart
+import email.mime.text
+import io
+import json
+import os.path
+import re
+import sys
+
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.urls import fetch_url, urllib_error
+
+# parameter names
+P_CMD = "cmd"
+P_CDS_URL = "cds_url"
+P_CDS_AUTH_TOKEN = "cds_auth_token"
+
+
+def main():
+    """ Parse Ansible module parameters and call respective method. """
+
+    fields = {
+        P_CMD: {"default": None, "type": "str"},
+        P_CDS_URL: {"default": "http://localhost:8000", "type": "str"},
+        P_CDS_AUTH_TOKEN: {
+            "default": "Y2NzZGthcHBzOmNjc2RrYXBwcw==", "type": "str"},
+    }
+    for cmd in API:
+        endpoint = API[cmd]
+        for parameter in endpoint.parameters:
+            # make sure same parameter
+            fields[parameter.name] = {
+                "default": parameter.default,
+                "type": parameter.cls.__name__.lower()}
+
+    module = AnsibleModule(argument_spec=fields, supports_check_mode=True)
+
+    cmd = module.params[P_CMD]
+    cds_url = module.params[P_CDS_URL].rstrip('/')
+    cds_auth_token = module.params[P_CDS_AUTH_TOKEN]
+
+    result = dict(
+        changed=False,
+        original_message='',
+        msg='',
+        answer='',
+    )
+
+    try:
+        endpoint = API[cmd]
+    except KeyError:
+        result['msg'] = "Unknown command specified: {cmd}".format(cmd=cmd)
+        module.fail_json(**result)
+
+    values = {}
+    for parameter in endpoint.parameters:
+        value = module.params[parameter.name]
+        if value is None:
+            result['msg'] = "Parameter missing or invalid: {name}".format(
+                name=parameter.name)
+            module.fail_json(**result)
+        values[parameter.name] = parameter.cls(value)
+
+    route = endpoint.route.format(**values)
+    request_url = API_ROUTE.format(cds_url=cds_url, route=route)
+    headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Basic {token}'.format(token=cds_auth_token),
+    }
+
+
+    if not endpoint.payload:
+        payload = None
+    else:
+        values = {
+            parameter.name if parameter.payload is True else parameter.payload:
+            values[parameter.name]
+            for parameter in endpoint.parameters if parameter.payload}
+        if endpoint.payload == 'JSON':
+            payload = json.dumps(values)
+            headers['Content-Type'] = 'application/json'
+        elif endpoint.payload == 'FORM':
+            payload = MultipartGenerator.encode_multipart(
+                values, headers, not module.check_mode)
+
+    success = False
+    try:
+        if module.check_mode and endpoint.method != 'GET':
+            result['msg'] = 'CDS call skipped for check mode'
+            result['answer'] = {
+                'request_url': request_url,
+                'method': endpoint.method,
+                'headers': headers,
+                'data': payload,
+            }
+            module.exit_json(**result)
+
+        response = FetchResponse(fetch_url(
+            module, request_url, payload, headers, endpoint.method, True))
+        result['answer'] = response.answer
+        if (200 <= response.status < 300
+                or endpoint.method == 'DELETE' and response.status == 404):
+            success = True
+            if endpoint.method != 'GET':
+                result['changed'] = True
+            msg = 'CDS call succeeded ({status})'
+        else:
+            msg = 'CDS call failed ({status})'
+        result['msg'] = msg.format(status=response.status)
+    except urllib_error.HTTPError as err:
+        result['msg'] = "{err}".format(err=err)
+
+    if success:
+        module.exit_json(**result)
+    else:
+        module.fail_json(**result)
+
+
+class Path(object):
+
+    def __init__(self, path):
+        self.path = path
+
+    @property
+    def base(self):
+        return os.path.basename(self.path)
+
+    @property
+    def mime(self):
+        split = self.path.rsplit('.', 1)
+        return (split[1] if len(split) == 2 else None) or 'octet-stream'
+
+    def get(self):
+        with io.open(self.path, 'rb') as source:
+            return source.read()
+
+
+class FetchResponse(dict):
+    def __init__(self, fetch_result):
+        super(FetchResponse, self).__init__(fetch_result[1])
+        self.status = self['status']
+        self.data = (self.get('body', '')
+                     if fetch_result[0] is None
+                     else fetch_result[0].read())
+        self.answer = self.data
+        if self.status != 204 and self.answer:
+            try:
+                # content-type is not necessarily set
+                self.answer = json.loads(self.data)
+            except ValueError:
+                pass
+
+
+class MultipartGenerator(email.generator.Generator):
+    skip_headers = False
+
+    def _write_headers(self, *args, **kwargs):
+        if self.skip_headers:
+            return
+        # old-style class in python2
+        return email.generator.Generator._write_headers(self, *args, **kwargs)
+
+    @classmethod
+    def encode_multipart(cls, values, headers, read_path):
+        """Encode a multipart msg, but put root headers aside"""
+        result = email.mime.multipart.MIMEMultipart('form-data')
+        del result['MIME-Version']
+        nop = lambda x: x
+        for key in values:
+            value = values[key]
+            if isinstance(value, Path):
+                part = email.mime.application.MIMEApplication(
+                    value.get() if read_path else value.path, value.mime)#, nop)
+                part['Content-Disposition'] = (
+                    'form-data; name="{key}"; filename="{base}"'
+                    .format(key=key, base=value.base))
+            else:
+                value = str(value)
+                part = email.mime.text.MIMEText(value, 'form-data')
+                part['Content-Disposition'] = (
+                    'form-data; name="{key}"'.format(key=key))
+            del part['MIME-Version']
+            result.attach(part)
+
+        # the generator always outputs str instances
+        output = io.StringIO() if isinstance(u'', str) else io.BytesIO()
+        instance = cls(output)
+        instance.skip_headers = True
+        instance.flatten(result)
+        headers.update(result.items())
+        return re.sub('\r?\n', '\r\n', output.getvalue())
+
+
+CdsControllerEndpoint = collections.namedtuple(
+    'CdsControllerEndpoint', 'name method route payload parameters')
+
+CdsControllerParameter = collections.namedtuple(
+    'CdsControllerParameter', 'name cls default payload')
+
+
+API_ROUTE = '{cds_url}/api/v1/{route}'
+
+API = {name: CdsControllerEndpoint(
+    name, method, route, payload,
+    [CdsControllerParameter(*parameter) for parameter in parameters])
+       for name, method, route, payload, parameters in [
+           ('health', 'GET', 'execution-service/health-check', '', []),
+           ('model_type', 'GET', 'model-type/{name}', '', [
+               ("name", str, None, False),
+           ]),
+           ('bootstrap', 'POST', 'blueprint-model/bootstrap', 'JSON', [
+               ("loadModelType", bool, True, True),
+               ("loadResourceDictionary", bool, True, True),
+               ("loadCBA", bool, True, True),
+           ]),
+           ('blueprints', 'GET', 'blueprint-model', '', []),
+           ('blueprint', 'GET', 'blueprint-model/{blueprint}', '', [
+               ("blueprint", str, None, False),
+           ]),
+           ('named_blueprint', 'GET', 'blueprint-model/by-name/{blueprint}/version/{version}', '', [
+               ("blueprint", str, None, False),
+               ("version", str, None, False),
+           ]),
+           ('remove', 'DELETE', 'blueprint-model/{blueprint}', '', [
+               ("blueprint", str, None, False),
+           ]),
+           ('enrich', 'POST', 'blueprint-model/enrich', 'FORM', [
+               ("cba_archive", Path, None, 'file'),
+           ]),
+           ('upload', 'POST', 'blueprint-model', 'FORM', [
+               ("cba_archive", Path, None, 'file'),
+           ]),
+           ('execute', 'POST', 'execution-service/process', 'JSON', [
+               # .commonHeader
+               ("timestamp", str, None, True),
+               ("originator", str, None, "originatorId"),
+               ("request", str, None, "requestId"),
+               ("subrequest", str, None, "subrequestId"),
+               # .commonHeader.flags
+               ("force", bool, False, "isForce"),
+               ("ttl", int, 3600, True),
+               # .actionIdentifiers
+               ("blueprint", str, None, "blueprintName"),
+               ("version", str, None, "blueprintVersion"),
+               ("action", str, None, "actionName"),
+               ("mode", str, "sync", True),
+               # top-level
+               ("payload", dict, {}, True),
+           ]),
+       ]}
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,47 @@
+version: '3.7'
+
+services:
+  lighty-roo:
+    image: "{{ lighty_roo_image }}"
+    container_name: "{{ lighty_roo_name }}"
+    hostname: "{{ lighty_roo_name }}"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - shared-network
+    ports:
+      - "{{ lighty_api_port }}:8888"
+      - "{{ lighty_ssh_port }}:22"
+  ovs-a:
+    image: "{{ ovs_image }}"
+    container_name: "{{ ovs_a_name }}"
+    hostname: "{{ ovs_a_name }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    # FIXME: ip netns add: "mount --make-shared /var/run/netns failed: Permission denied"
+    privileged: true
+    command: ""
+    networks:
+      - shared-network
+    ports:
+      - "{{ ovs_a_ssh_port }}:22"
+  ovs-b:
+    image: "{{ ovs_image }}"
+    container_name: "{{ ovs_b_name }}"
+    hostname: "{{ ovs_b_name }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    # FIXME: ip netns add: "mount --make-shared /var/run/netns failed: Permission denied"
+    privileged: true
+    command: ""
+    networks:
+      - shared-network
+    ports:
+      - "{{ ovs_b_ssh_port }}:22"
+
+networks:
+  shared-network:
+    external: true
+    name: "{{ shared_network }}"

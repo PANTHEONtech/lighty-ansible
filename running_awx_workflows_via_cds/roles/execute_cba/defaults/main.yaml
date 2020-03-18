@@ -1,0 +1,12 @@
+# Hostname for awx_web container, both valid domain name and resolvable
+awx_int_host: web
+
+# Internal port of AWX
+awx_int_port: 8052
+
+# Originator field in blueprint workflow process request input
+originator: "ansible playbook"
+
+# awx user to execute playbook
+awx_username: admin
+awx_password: password

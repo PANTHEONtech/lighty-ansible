@@ -14,14 +14,14 @@
   when: current_host_cfg.sf_cfg is defined
 
 - name: "Delete the veth interface"
-  command: sudo ip link delete "{{ item }}"
+  command: ip link delete "{{ item }}"
   become: true
   ignore_errors: yes
-  with_items: "{{ br_int_list }}"
+  loop: "{{ br_int_list }}"
   when: current_host_cfg.sf_cfg is defined
 
 - name: "Delete network namespace of vFirewall"
-  command: sudo ip netns del {{ current_host_cfg.sf_cfg.sf_id }}
+  command: ip netns del "{{ current_host_cfg.sf_cfg.sf_id }}"
   args:
     removes: "/var/run/netns/{{ current_host_cfg.sf_cfg.sf_id }}"
   become: true

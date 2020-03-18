@@ -1,0 +1,76 @@
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+
+- name: "Gather demo topology share network IPs"
+  docker_container_info:
+    name: "{{ item }}"
+  register: docker_containers
+  when: lighty_cfg_list_source is not defined
+  loop:
+    - "{{ lighty_roo_name }}"
+    - "{{ ovs_a_name }}"
+    - "{{ ovs_b_name }}"
+
+
+- name: "Extract container shared IP keys and values"
+  set_fact:
+    shared_ip_keys: "{{ shared_ip_keys | default([]) + [item.item] }}"
+    shared_ip_vals: "{{ shared_ip_vals | default([]) + [item.container.NetworkSettings.Networks[shared_network].IPAddress] }}"
+  loop: "{{ docker_containers.results }}"
+  when: lighty_cfg_list_source is not defined
+
+
+- name: "Dictize container shared IP keys and values"
+  set_fact:
+    shared_ip: "{{ dict(shared_ip_keys | zip(shared_ip_vals)) }}"
+
+
+- name: "Create demo configuration list"
+  set_fact:
+    lighty_cfg_list: "{{ lookup('template', 'lighty-cfg-list.json.j2') }}"
+  when: lighty_cfg_list_source is not defined
+
+
+# Ansible can't have jinja-powered keys, it seems, so prepare it as yaml
+- name: "Create workflow payload"
+  set_fact:
+    cba_workflow_payload: |
+      {
+        {{ workflow }}-request: {
+          "awx-endpoint" : {
+            "type" : "basic-auth",
+            "url" : "http://{{ awx_int_host }}:{{ awx_int_port }}",
+            "username" : "{{ awx_username }}",
+            "password" : "{{ awx_password }}"
+          },
+          "awx-extra-vars" : {
+          {% if lighty_cfg_list %}
+            "cfg_list" : {{ lighty_cfg_list.cfg_list }},
+          {% elif lighty_cfg_list_source %}
+            "cfg_list_source" : "{{ lighty_cfg_list_source }}",
+          {% endif %}
+            "sdn_controller_url" : "http://{{ lighty_roo_name }}:8888"
+          },
+          # NOTE: CDS cannot resolve inventory by name
+          "awx-inventory" : "{{ awx_inventory }}"
+        }
+      }
+
+
+- name: "Execute CBA workflow"
+  cds_controller:
+    cmd: execute
+    workflow: "{{ workflow }}"
+    blueprint: "{{ cba_blueprint }}"
+    version: "{{ cba_version }}"
+    timestamp: "{{ ansible_date_time.iso8601_micro[:-4] + 'Z' }}"
+    originator: "{{ originator }}"
+    request: "ansible execute {{ workflow }}"
+    subrequest: "{{ 99999 | random }}"
+    payload: "{{ cba_workflow_payload | from_yaml }}"
+  register: cba_exeute

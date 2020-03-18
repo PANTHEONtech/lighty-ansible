@@ -1,0 +1,130 @@
+version: '3.7'
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: ccsdk-mariadb
+    networks:
+      - cds-network
+    volumes:
+      - target: /var/lib/mysql
+        type: volume
+        source: mysql-data
+    environment:
+      MYSQL_ROOT_PASSWORD: sdnctl
+      MYSQL_DATABASE: sdnctl
+      MYSQL_USER: sdnctl
+      MYSQL_PASSWORD: sdnctl
+  nats:
+    image: nats-streaming:latest
+    container_name: nats
+    hostname: nats
+    command: "-cid cds-cluster --auth tokenAuth -store file -dir /opt/app/onap/nats/store --cluster_node_id nats"
+    networks:
+      - cds-network
+    volumes:
+      - target: /opt/app/onap/nats/store
+        type: volume
+        source: nats-store
+  cds-controller-default:
+    depends_on:
+      - db
+      - nats
+    image: "{{ cds_bp_repo or cds_all_repo }}ccsdk-blueprintsprocessor:{{ cds_bp_version or cds_all_version }}"
+    container_name: cds-controller-default
+    hostname: cds-controller-default
+    networks:
+      - cds-network
+      - shared-network
+{% if False and awxweb_host != 'awxweb' %}
+    extra_hosts:
+      # FIXME: on the shared network, CDS container can only resolve
+      # the container name, awx_web, not the hostname awxweb.
+      # That breaks awxweb's nginx, as it's an invalid domain name
+      # Luckily, the awx_web container also has a rather generic alias, web.
+      - "{{ awxweb_host }}:{{ awxweb_container }}"
+{% endif %}
+    ports:
+      - "{{ cds_pub_port }}:8080"
+{% if cds_jdb_port %}
+      - "{{ cds_jdb_port }}:{{ cds_jdb_port }}"
+{% endif %}
+    volumes:
+      - target: /opt/app/onap/blueprints/deploy
+        type: volume
+        source: blueprints-deploy
+      - target: /opt/app/onap/config
+        type: volume
+        source: controller-config
+    environment:
+      APP_NAME: cds-controller
+      BUNDLEVERSION: 1.0.0
+      APP_CONFIG_HOME: /opt/app/onap/config
+      STICKYSELECTORKEY:
+      ENVCONTEXT: dev
+  command-executor:
+    depends_on:
+      - db
+    image: "{{ cds_ce_repo or cds_all_repo }}ccsdk-commandexecutor:{{ cds_ce_version or cds_all_version }}"
+    container_name: bp-command-executor
+    networks:
+      - cds-network
+    volumes:
+      - target: /opt/app/onap/blueprints/deploy
+        type: volume
+        source: blueprints-deploy
+  py-executor-default:
+    depends_on:
+      - db
+      - nats
+    image: "{{ cds_pe_repo or cds_all_repo }}ccsdk-py-executor:{{ cds_pe_version or cds_all_version }}"
+    container_name: py-executor-default
+    hostname: py-executor-default
+    networks:
+      - cds-network
+    volumes:
+      - target: /opt/app/onap/blueprints/deploy
+        type: volume
+        source: blueprints-deploy
+    environment:
+      APP_NAME: py-executor
+      BUNDLEVERSION: 1.0.0
+      APP_CONFIG_HOME: /opt/app/onap/config
+      STICKYSELECTORKEY:
+      ENVCONTEXT: dev
+      APP_PORT: 50052
+      AUTH_TYPE: tls-auth
+      LOG_FILE: /opt/app/onap/logs/application.log
+
+volumes:
+  mysql-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "{{ cds_volume_mysql_dir }}"
+      o: bind
+  nats-store:
+    driver: local
+    driver_opts:
+      type: none
+      device: "{{ cds_volume_nats_dir }}"
+      o: bind
+  blueprints-deploy:
+    driver: local
+    driver_opts:
+      type: none
+      device: "{{ cds_volume_blueprint_dir }}"
+      o: bind
+  controller-config:
+    driver: local
+    driver_opts:
+      type: none
+      device: "{{ cds_volume_config_dir }}"
+      o: bind
+
+networks:
+  cds-network:
+    driver: bridge
+  shared-network:
+    external: true
+    name: "{{ shared_network }}"

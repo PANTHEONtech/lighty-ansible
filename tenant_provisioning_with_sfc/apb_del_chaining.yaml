@@ -6,7 +6,7 @@
 #  and is available at https://www.eclipse.org/legal/epl-v10.html
 
 
-- hosts: all
+- hosts: ovs
   connection: local
   roles:
     - role: read_current_host_cfg
@@ -15,7 +15,7 @@
       ignore_errors: yes
       when: current_host_cfg.sf_cfg is defined
 
-- hosts: all
+- hosts: ovs
   roles:
     - role: del_sf_chaining_infra
       ignore_errors: yes

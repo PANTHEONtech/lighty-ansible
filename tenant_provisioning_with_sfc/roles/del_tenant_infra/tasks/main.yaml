@@ -19,12 +19,12 @@
   ignore_errors: yes
 
 - name: "Delete veths and namespace"
-  command: sudo ip link delete "{{ current_host_cfg.server_name }}"-"{{ current_host_cfg.server_veth }}"
+  command: ip link delete "{{ current_host_cfg.server_name }}-{{ current_host_cfg.server_veth }}"
   become: true
   ignore_errors: yes
 
 - name: "Delete network namespace"
-  command: sudo ip netns del "{{ current_host_cfg.server_name }}"
+  command: ip netns del "{{ current_host_cfg.server_name }}"
   args:
     removes: "/var/run/netns/{{ current_host_cfg.server_name }}"
   become: true

@@ -1,0 +1,52 @@
+# set to true in order to destroy the topology
+docker_destroy: false
+
+# container with lighty.io openflow plugin
+lighty_roo_image: pantheontech/lighty-roo:latest
+
+# container with ssh and openvswitch
+ovs_image: pantheontech/openvswitch:latest
+
+# Default docker repository for ONAP images, with per-node override
+cds_all_repo: nexus3.onap.org:10001/onap/
+cds_all_version: 0.7.0-STAGING-latest
+
+# container with ONAP CDS backend
+cds_bp_repo: null
+cds_bp_version: null
+
+# container with command executor
+cds_ce_repo: null
+cds_ce_version: null
+
+# container with python executor
+cds_pe_repo: null
+cds_pe_version: null
+
+# expose CDS blueprint processor API port
+cds_pub_port: 8000
+
+# allow custom-built CDS image to expose JDB port
+cds_jdb_port: null
+
+# expose Lighty API port
+lighty_api_port: 8888
+
+# expose SSH port for Lighty
+lighty_ssh_port: 1122
+
+# expose SSH port for OVS node A
+ovs_a_ssh_port: 1123
+
+# expose SSH port for OVS node B
+ovs_b_ssh_port: 1124
+
+# network on which AWX can communicate with all other nodes
+# this is determined by the AWX setup playbook
+shared_network: awxcompose_default
+
+# hostname to use for AWX
+awxweb_host: web
+
+# AWX container name
+awxweb_container: awx_web

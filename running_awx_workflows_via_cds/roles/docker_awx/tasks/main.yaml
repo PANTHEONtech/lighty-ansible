@@ -1,0 +1,86 @@
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+- name: "Resolve runtime root directory"
+  include_role:
+    name: resolve_runtime_root
+
+
+- name: "Set AWX repository directory"
+  set_fact:
+    awx_repo_dir: "{{ runtime_root_abs }}/repos/awx"
+    awx_compose_dir: "{{ runtime_root_abs }}/docker/awx"
+    awx_volume_pg_dir: "{{ runtime_root_abs }}/volumes/awx_pg"
+
+
+- name: "Ensure AWX directories"
+  file:
+    state: directory
+    path: "{{ item }}"
+  loop:
+    - "{{ awx_volume_pg_dir }}"
+    - "{{ awx_compose_dir }}"
+  when: not awx_destroy
+
+
+- name: "Clone AWX repository"
+  git:
+    repo: "{{ awx_repo }}"
+    version: "{{ awx_branch }}"
+    dest: "{{ awx_repo_dir }}"
+    depth: 1
+  when: not awx_destroy
+
+
+- name: "Configure AWX install for docker-compose"
+  ini_file:
+    path: "{{ awx_repo_dir }}/installer/inventory"
+    section: "all:vars"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    create: no
+  loop:
+    - option: admin_user
+      value: "{{ awx_username }}"
+    - option: admin_password
+      value: "{{ awx_password }}"
+    - option: host_port
+      value: "{{ awx_pub_port }}"
+    - option: host_port_ssl
+      value: "{{ awx_ssl_port }}"
+    - option: docker_compose_dir
+      value: "{{ awx_compose_dir }}"
+    - option: postgres_data_dir
+      value: "{{ awx_volume_pg_dir }}"
+  when: not awx_destroy
+
+
+- name: "Run Ansible AWX install playbook"
+  command:
+    cmd: ansible-playbook -i inventory install.yml
+    chdir: "{{ awx_repo_dir }}/installer"
+  when: not awx_destroy
+
+
+- name: "Destroy AWX containers"
+  docker_compose:
+    project_src: "{{ awx_compose_dir }}"
+    state: absent
+  when: awx_destroy
+
+
+- name: "Destroy directories"
+  file:
+    state: absent
+    path: "{{ item }}"
+  when: awx_destroy
+  # volumes contain files of other users
+  become: true
+  loop:
+    - "{{ awx_volume_pg_dir }}"
+    - "{{ awx_compose_dir }}"
+    - "{{ awx_repo_dir }}"

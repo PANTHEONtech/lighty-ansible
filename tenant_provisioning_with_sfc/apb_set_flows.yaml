@@ -9,7 +9,7 @@
 # When the sf_cfg item of the current host's configuration is not defined then
 # use the SDN controller and configure simple flows forwarding packets between
 # veth link and the VXLAN tunnel interface.
-- hosts: all
+- hosts: ovs
   connection: local
   roles:
     - read_current_host_cfg

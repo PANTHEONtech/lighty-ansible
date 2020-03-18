@@ -1,0 +1,80 @@
+#
+#  Copyright (c) 2020 PANTHEON.tech s.r.o. All Rights Reserved.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Eclipse Public License v1.0 which accompanies this distribution,
+#  and is available at https://www.eclipse.org/legal/epl-v10.html
+
+- name: "Resolve runtime root directory"
+  include_role:
+    name: resolve_runtime_root
+
+
+- name: "Set CDS directories"
+  set_fact:
+    cds_volume_mysql_dir: "{{ runtime_root_abs }}/volumes/cds_mysql"
+    cds_volume_nats_dir: "{{ runtime_root_abs }}/volumes/cds_nata"
+    cds_volume_blueprint_dir: "{{ runtime_root_abs }}/volumes/cds_blueprint"
+    cds_volume_config_dir: "{{ runtime_root_abs }}/volumes/cds_config"
+    cds_compose_dir: "{{ runtime_root_abs }}/docker/cds"
+
+
+- name: "Ensure CDS directories"
+  file:
+    state: directory
+    path: "{{ item }}"
+  loop:
+    - "{{ cds_volume_mysql_dir }}"
+    - "{{ cds_volume_nats_dir }}"
+    - "{{ cds_volume_blueprint_dir }}"
+    - "{{ cds_volume_config_dir }}"
+    - "{{ cds_compose_dir }}"
+
+- name: "Prepare CDS docker project"
+  template:
+    src: templates/cds.yaml.j2
+    dest: "{{ cds_compose_dir }}/docker-compose.yaml"
+
+
+- name: "Set Lighty container directories"
+  set_fact:
+    lighty_compose_dir: "{{ runtime_root_abs }}/docker/lighty-roo"
+
+
+- name: "Ensure Lighty directories"
+  file:
+    state: directory
+    path: "{{ lighty_compose_dir }}"
+
+
+- name: "Prepare Lighty docker project"
+  template:
+    src: templates/lighty-roo.yaml.j2
+    dest: "{{ lighty_compose_dir }}/docker-compose.yaml"
+
+- name: "CDS containers"
+  docker_compose:
+    project_src: "{{ cds_compose_dir }}"
+    state: "{{ 'absent' if docker_destroy else 'present' }}"
+
+
+- name: "Lighty containers"
+  docker_compose:
+    project_src: "{{ lighty_compose_dir }}"
+    state: "{{ 'absent' if docker_destroy else 'present' }}"
+
+
+- name: "Destroy directories"
+  file:
+    state: absent
+    path: "{{ item }}"
+  when: docker_destroy
+  # volumes contain files of other users
+  become: true
+  loop:
+    - "{{ cds_volume_mysql_dir }}"
+    - "{{ cds_volume_nats_dir }}"
+    - "{{ cds_volume_blueprint_dir }}"
+    - "{{ cds_volume_config_dir }}"
+    - "{{ cds_compose_dir }}"
+    - "{{ lighty_compose_dir }}"

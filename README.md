@@ -14,3 +14,6 @@ with orchestration of networking devices (physical or virtual).<br/>
 
 - **tenant_provisioning_with_sfc** - Implements Ansible playbooks and module for provisioning and de-provisioning
 tenant's containers, VXLAN tunnel, SF (Service Function) and SFC. Check out blog at https://pantheon.tech/awx-ansible-lightyio/ for more details.
+
+- **running_awx_workflows_via_cds** - Implements Ansible playbooks and module for provisioning and de-provisioning
+a set of Docker containers with Ansible AWX, ONAP CDS, and a topology for running the **tenant_provisioning_with_sfc** project.
