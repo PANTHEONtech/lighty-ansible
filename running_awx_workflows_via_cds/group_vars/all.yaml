@@ -36,6 +36,3 @@ ovs_password: ""
 # container with ONAP CDS blueprint processor
 cds_bp_repo: pantheontech/
 cds_bp_version: 7.0-DEMO-latest
-
-lighty_ansible_repo: https://github.com/ptlm/lighty-ansible.git
-lighty_ansible_branch: cds
